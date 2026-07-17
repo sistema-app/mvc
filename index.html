@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arquitectura de Software MVC</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls para permitir rotación y zoom interactivo (agrandar/achicar) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        :root {
+            --bg-color: #060713;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --neon-magenta: #ff007f;
+            --neon-cyan: #00f3ff;
+            --neon-green: #39ff14;
+            --text-primary: #f5f5f7;
+            --text-secondary: #9e9eaf;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(255, 0, 127, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 243, 255, 0.05) 0%, transparent 40%);
+        }
+
+        /* Header & Logo */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 40px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .logo-container {
+            pointer-events: auto;
+        }
+
+        .logo-container img {
+            height: 100px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
+            transition: transform 0.3s ease;
+        }
+
+        .logo-container img:hover {
+            transform: scale(1.05);
+        }
+
+        /* Layout Principal */
+        main {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            min-height: 100vh;
+            padding-top: 80px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Panel de Información */
+        .info-panel {
+            padding: 40px 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .titles {
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            line-height: 1.2;
+            background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            font-size: 1.4rem;
+            font-weight: 400;
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+        }
+
+        .intro-text {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            max-width: 600px;
+        }
+
+        /* Tarjetas MVC */
+        .cards-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 600px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: transparent;
+            transition: background 0.3s ease;
+        }
+
+        /* Modificadores de color para cada tarjeta */
+        .card.modelo:hover {
+            border-color: rgba(255, 0, 127, 0.3);
+            box-shadow: 0 10px 30px rgba(255, 0, 127, 0.1);
+            transform: translateX(5px);
+        }
+        .card.modelo::before {
+            background: var(--neon-magenta);
+        }
+
+        .card.vista:hover {
+            border-color: rgba(0, 243, 255, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 243, 255, 0.1);
+            transform: translateX(5px);
+        }
+        .card.vista::before {
+            background: var(--neon-cyan);
+        }
+
+        .card.controlador:hover {
+            border-color: rgba(57, 255, 20, 0.3);
+            box-shadow: 0 10px 30px rgba(57, 255, 20, 0.1);
+            transform: translateX(5px);
+        }
+        .card.controlador::before {
+            background: var(--neon-green);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .card.modelo .card-title { color: var(--neon-magenta); }
+        .card.vista .card-title { color: var(--neon-cyan); }
+        .card.controlador .card-title { color: var(--neon-green); }
+
+        .card-tech {
+            font-size: 0.8rem;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px 10px;
+            border-radius: 20px;
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-body {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+
+        /* Canvas de 3D Three.js */
+        .visualizer-panel {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 500px;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            /* El filtro drop-shadow de CSS genera un espectacular halo de neón sobre el render interactivo */
+            filter: drop-shadow(0 0 35px rgba(0, 243, 255, 0.15)) drop-shadow(0 0 15px rgba(255, 0, 127, 0.15));
+        }
+
+        /* Adaptabilidad (Responsive) */
+        @media (max-width: 1024px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+
+            .info-panel {
+                padding: 40px;
+                order: 2;
+            }
+
+            .visualizer-panel {
+                height: 55vh;
+                order: 1;
+                min-height: auto;
+            }
+
+            header {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 2rem;
+            }
+            .subtitle {
+                font-size: 1.1rem;
+            }
+            .info-panel {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header & Logo -->
+    <header>
+        <div class="logo-container">
+            <img src="plx.png" alt="Logo PLX" onerror="this.style.display='none'; console.warn('No se pudo cargar plx.png')">
+        </div>
+    </header>
+
+    <!-- Main Presentation Layout -->
+    <main>
+        <!-- Columna de Información -->
+        <section class="info-panel">
+            <div class="titles">
+                <h1>Arquitectura de Software MVC</h1>
+                <div class="subtitle">Modelo - Vista - Controlador</div>
+            </div>
+
+            <p class="intro-text">
+                MVC es un patrón de arquitectura de software que organiza una aplicación en tres componentes principales, optimizando el desarrollo, la mantenibilidad y la escalabilidad.
+            </p>
+
+            <div class="cards-container">
+                <!-- Modelo -->
+                <div class="card modelo">
+                    <div class="card-header">
+                        <span class="card-title">Modelo</span>
+                        <span class="card-tech">MySQL</span>
+                    </div>
+                    <div class="card-body">
+                        Se encarga de los datos y la lógica de negocio. Gestiona la información de forma directa, realiza consultas en bases de datos y aplica rigurosamente las reglas operativas del sistema.
+                    </div>
+                </div>
+
+                <!-- Vista -->
+                <div class="card vista">
+                    <div class="card-header">
+                        <span class="card-title">Vista</span>
+                        <span class="card-tech">QT</span>
+                    </div>
+                    <div class="card-body">
+                        Es la interfaz con la que interactúa el usuario de forma visual. Se encarga de formatear y presentar los datos que recibe del modelo, libre de lógica de negocio o procesos internos.
+                    </div>
+                </div>
+
+                <!-- Controlador -->
+                <div class="card controlador">
+                    <div class="card-header">
+                        <span class="card-title">Controlador</span>
+                        <span class="card-tech">Python</span>
+                    </div>
+                    <div class="card-body">
+                        Actúa como el orquestador principal e intermediario entre el modelo y la vista. Recibe las interacciones del usuario, procesa las solicitudes correspondientes y dictamina qué datos se deben actualizar o mostrar.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Columna Visualizadora 3D -->
+        <section class="visualizer-panel">
+            <div id="canvas-container"></div>
+        </section>
+    </main>
+
+    <!-- Script de Configuración de Three.js -->
+    <script>
+        // Setup Inicial de la Escena
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        
+        // Cámara (Ajustada para que el triángulo más grande encuadre perfectamente)
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+        camera.position.z = 8.5;
+
+        // Renderizador con fondo transparente para acoplarse al gradiente CSS
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // --- CONTROLES INTERACTIVOS (OrbitControls) ---
+        // Permite al usuario arrastrar para rotar y usar el scroll para agrandar (Zoom)
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; // Efecto de inercia suave
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 4;      // Límite de cuánto se puede acercar/agrandar
+        controls.maxDistance = 15;     // Límite de cuánto se puede alejar/achicar
+
+        // Iluminación ambiental y puntual para destacar los componentes interactivos
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
+
+        const pointLight = new THREE.PointLight(0x00f3ff, 2, 50);
+        pointLight.position.set(0, 0, 5);
+        scene.add(pointLight);
+
+        // Grupo principal para contener la estructura del triángulo y rotarla en conjunto
+        const mvcGroup = new THREE.Group();
+        scene.add(mvcGroup);
+
+        // --- CONSTRUCCIÓN DEL TRIÁNGULO DE NEÓN CON ÁNGULOS PICUDOS ---
+        // Coordenadas de los tres vértices escalados:
+        const vertices = [
+            new THREE.Vector3(0, 2.4, 0),       // Vértice 0: Superior (Ahora Modelo / MySQL)
+            new THREE.Vector3(-2.3, -1.6, 0),   // Vértice 1: Inferior Izquierdo (Ahora Vista / QT)
+            new THREE.Vector3(2.3, -1.6, 0)     // Vértice 2: Inferior Derecho (Ahora Controlador / Python)
+        ];
+
+        // Material del neón (Emisivo brillante)
+        const neonMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00f3ff,
+            wireframe: false
+        });
+
+        // Contenedor grupal del triángulo de aristas rígidas
+        const neonTriangle = new THREE.Group();
+
+        // Función auxiliar para crear tubos rectos (cilindros) perfectos entre dos vértices
+        function createSharpEdge(p1, p2, radius) {
+            const direction = new THREE.Vector3().subVectors(p2, p1);
+            const length = direction.length();
+            
+            // Cilindro de alta resolución para el cuerpo del neón
+            const geometry = new THREE.CylinderGeometry(radius, radius, length, 16);
+            
+            // Orientamos y posicionamos la geometría del cilindro para que coincida entre p1 y p2
+            geometry.translate(0, length / 2, 0);
+            geometry.rotateX(Math.PI / 2);
+            
+            const mesh = new THREE.Mesh(geometry, neonMaterial);
+            mesh.position.copy(p1);
+            mesh.lookAt(p2);
+            
+            return mesh;
+        }
+
+        // Construir los 3 lados rectos con grosor de neón (0.05)
+        const neonRadius = 0.05;
+        const edge1 = createSharpEdge(vertices[0], vertices[1], neonRadius);
+        const edge2 = createSharpEdge(vertices[1], vertices[2], neonRadius);
+        const edge3 = createSharpEdge(vertices[2], vertices[0], neonRadius);
+
+        neonTriangle.add(edge1);
+        neonTriangle.add(edge2);
+        neonTriangle.add(edge3);
+
+        mvcGroup.add(neonTriangle);
+
+        // --- INTEGRACIÓN DE LOGOS (VÉRTICES REORDENADOS) ---
+        const textureLoader = new THREE.TextureLoader();
+
+        // Función reutilizable para crear los Sprites de los logos
+        function createLogoSprite(path, position) {
+            const texture = textureLoader.load(path, 
+                undefined, 
+                undefined, 
+                // Callback en caso de error
+                (err) => console.warn(`No se pudo cargar la imagen: ${path}`)
+            );
+            const spriteMaterial = new THREE.SpriteMaterial({ 
+                map: texture, 
+                transparent: true,
+                depthWrite: false
+            });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.position.copy(position);
+            sprite.scale.set(0.7, 0.7, 1);
+            return sprite;
+        }
+
+        // Posiciones desplazadas de las puntas según el nuevo orden:
+        // Arriba -> MySQL. Izquierda -> QT. Derecha -> Python.
+        const logoMySQL = createLogoSprite('MySQL.png', new THREE.Vector3(0, 2.9, 0));
+        const logoQt = createLogoSprite('qt.png', new THREE.Vector3(-2.8, -1.9, 0));
+        const logoPython = createLogoSprite('python.png', new THREE.Vector3(2.8, -1.9, 0));
+
+        mvcGroup.add(logoMySQL);
+        mvcGroup.add(logoQt);
+        mvcGroup.add(logoPython);
+
+        // --- CREACIÓN DE LETRAS INTERNAS (REORDENADAS: M -> V -> C) ---
+        function createLetterSprite(letter, colorHex) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = 'rgba(0,0,0,0)';
+            ctx.fillRect(0, 0, 128, 128);
+
+            // Estilizado de la letra neón
+            ctx.font = 'bold 90px "Poppins", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.shadowColor = colorHex;
+            ctx.shadowBlur = 15;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(letter, 64, 64);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.scale.set(0.6, 0.6, 1);
+            return sprite;
+        }
+
+        // Creamos las letras internas según el nuevo orden solicitado:
+        const letterM = createLetterSprite('M', '#ff007f'); // Modelo (Arriba, Magenta)
+        letterM.position.set(0, 1.1, 0);
+
+        const letterV = createLetterSprite('V', '#00f3ff'); // Vista (Izquierda, Cian)
+        letterV.position.set(-0.9, -0.5, 0);
+
+        const letterC = createLetterSprite('C', '#39ff14'); // Controlador (Derecha, Verde)
+        letterC.position.set(0.9, -0.5, 0);
+
+        mvcGroup.add(letterM);
+        mvcGroup.add(letterV);
+        mvcGroup.add(letterC);
+
+        // Centrar levemente el grupo en la pantalla
+        mvcGroup.position.y = -0.2;
+
+        // --- BUCLE DE ANIMACIÓN ---
+        let clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const elapsedTime = clock.getElapsedTime();
+
+            // Rotación oscilante suave en el eje Y (Se complementa de forma fluida con OrbitControls)
+            mvcGroup.rotation.y = Math.sin(elapsedTime * 0.5) * 0.3;
+            
+            // Efecto de flotación en el eje Y (Bobbing)
+            mvcGroup.position.y = -0.2 + Math.sin(elapsedTime * 1.5) * 0.1;
+
+            // Variación sutil de escala para simular pulsación del neón
+            const pulse = 1 + Math.sin(elapsedTime * 3) * 0.015;
+            neonTriangle.scale.set(pulse, pulse, pulse);
+
+            // Actualización requerida para el funcionamiento suave de OrbitControls
+            controls.update();
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // --- GESTIÓN DE RESPONSIVIDAD (RESIZE) ---
+        window.addEventListener('resize', () => {
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(width, height);
+            
+            // Ajustar distancia por defecto de la cámara según tamaño de pantalla
+            if (window.innerWidth < 768) {
+                camera.position.z = 10;
+            } else {
+                camera.position.z = 8.5;
+            }
+        });
+
+        // Disparar redimensionamiento inicial al cargar la página
+        window.dispatchEvent(new Event('resize'));
+    </script>
+</body>
+</html>
